@@ -1,13 +1,11 @@
-local composer = require("composer")
+local composer = require("composer") -- Import reuired libaries/modules
 local json = require("json")
 
-display.setStatusBar(display.HiddenStatusBar)
-
-math.randomseed(os.time())
+math.randomseed(os.time()) -- Create new random generator seed
 
 local skinData = {}
 
-local function loadData()
+local function loadData() -- Load skin data
 
 	local filePath = system.pathForFile("skinData.json", system.DocumentsDirectory)
 
@@ -29,8 +27,7 @@ composer.setVariable("skinTable", skinTable)
 local skinColor =  skinData["skinColor"] or {0, 0.5, 1}
 composer.setVariable("skinColor", skinColor)
 
-composer.setVariable("isFromGame", false)
+composer.setVariable("isFromGame", false) -- Keeps track of tranistions to highscores scene
 
 
-composer.gotoScene("menu")
-
+composer.gotoScene("menu") -- Go to menu scene

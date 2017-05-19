@@ -1,14 +1,14 @@
 
 local composer = require( "composer" )
 
-local scene = composer.newScene()
+local scene = composer.newScene() --Set up for scene api/structure
 
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
-local ccX = display.contentCenterX
+local ccX = display.contentCenterX -- Preinitialise utility and object related variables
 local ccY = display.contentCenterY
 local cH = display.contentHeight
 local cW = display.contentWidth
@@ -25,19 +25,12 @@ local skinColor = composer.getVariable("skinColor")
 local skinTimer
 local skinF = 10
 
-local function moveSkinWidget()
-
-	skinWidget.x = skinWidget.x + skinF 
-	skinWidget.rotation = skinWidget.rotation + 2
-
-	if (skinWidget.x > cW-75 or skinWidget.x < 75) then
-			skinF = -skinF
-	end
-end
-
 local playButton
 local modeButton
 local skinButton
+
+
+--Event handlers for button interactions
 
 local function onPlayButtonPress()
 
@@ -46,7 +39,7 @@ local function onPlayButtonPress()
 		composer.gotoScene("game", {effect="slideUp", time = 500})
 		timer.performWithDelay(550, function()
 			composer.removeScene("menu")
-		end)	
+		end)
 end
 
 local function onModeButtonPress()
@@ -71,6 +64,17 @@ local function onSkinButtonPress()
 		end)
 end
 
+
+local function moveSkinWidget() -- Function animates moving player 'icon'
+
+	skinWidget.x = skinWidget.x + skinF
+	skinWidget.rotation = skinWidget.rotation + 2
+
+	if (skinWidget.x > cW-75 or skinWidget.x < 75) then
+			skinF = -skinF
+	end
+end
+
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -79,7 +83,8 @@ end
 function scene:create( event )
 
 	local sceneGroup = self.view
-	-- Code here runs when the scene is first created but has not yet appeared on screen
+
+	-- Following code creates objects on screen
 
 	background = display.newRect(sceneGroup, cW/4, ccY, ccX, cH)
 
@@ -100,11 +105,12 @@ function scene:create( event )
 
 	modeButton = display.newImageRect(sceneGroup, "mode.png", 100, 100)
 	modeButton.x = cW/4; modeButton.y = 3*cH/4
+	modeButton.rotation = 180
 
 
-	skinWidget = display.newImageRect(sceneGroup, skinTable[skinId], 100, 100)
+	skinWidget = display.newImageRect(sceneGroup, skinTable[skinId], 100, 100) -- Animated icons ; skinTable[skinId] gets user selected skin
 	skinWidget.x=ccX; skinWidget.y=350
-	skinWidget:setFillColor(unpack(skinColor))
+	skinWidget:setFillColor(unpack(skinColor)) -- Get current user selected color
 
 
 
@@ -119,48 +125,20 @@ function scene:show( event )
 	local phase = event.phase
 
 	if ( phase == "will" ) then
-		-- Code here runs when the scene is still off screen (but is about to come on screen)
 
-		playButton:addEventListener("tap", onPlayButtonPress)
+		playButton:addEventListener("tap", onPlayButtonPress) -- Bind button interaction event listeners
 		modeButton:addEventListener("tap", onModeButtonPress)
 		skinButton:addEventListener("tap", onSkinButtonPress)
 
-		skinTimer = timer.performWithDelay(10, moveSkinWidget, 0)
+		skinTimer = timer.performWithDelay(10, moveSkinWidget, 0) -- Start player 'icon' annimation
 
 	elseif ( phase == "did" ) then
 		-- Code here runs when the scene is entirely on screen
 
-			
+
 
 	end
 end
-
-
--- hide()
-function scene:hide( event )
-
-	local sceneGroup = self.view
-	local phase = event.phase
-
-	if ( phase == "will" ) then
-		-- Code here runs when the scene is on screen (but is about to go off screen)
-
-	elseif ( phase == "did" ) then
-		-- Code here runs immediately after the scene goes entirely off screen
-
-	end
-end
-
-
--- destroy()
-function scene:destroy( event )
-
-	local sceneGroup = self.view
-	-- Code here runs prior to the removal of scene's view
-
-end
-
-
 -- -----------------------------------------------------------------------------------
 -- Scene event function listeners
 -- -----------------------------------------------------------------------------------

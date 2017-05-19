@@ -15,6 +15,9 @@ local cW = display.contentWidth
 
 local background
 
+local immortal = false
+local doPUps = true
+
 local gameState = 0 -- 0 to 0.9 is waiting, 1 ingame, 2 ended & cleanup, 3 finished
 local gameScore = 0
 local gameScoreText
@@ -34,6 +37,9 @@ local lObjSpeed = 0
 local rObjSpeed = 0
 local objTable = {}
 
+local pUpTable = {}
+local pointPUpMultiplyer = 100
+
 local inScoreVal = 1
 
 local doUpSpeed =true
@@ -49,6 +55,12 @@ local function makeEnd()
 	end
 
 	objTable = {}
+
+	for i=#pUpTable, 1, -1 do
+		display.remove( pUpTable[i] )
+	end
+
+	pUpTable = {}
 
 
 end
@@ -112,11 +124,52 @@ local function onSkinWidgetTouch( event )
 	return true
 end
 
+local function doPointIndication(text, color)
+
+	local text = display.newText(scene.view, "+"..tostring(text), 3*cW/4, 100, native.systemFont, 56)
+	text:setFillColor(unpack(color))
+
+	local lenTime = 1000
+
+	transition.to( text, {time=lenTime, alpha=0, y=-50 })
+	timer.performWithDelay( lenTime, function() display.remove( text )end )
+
+end
+
 local function incScore()
 
 	gameScore = gameScore + inScoreVal
 	gameScoreText.text = gameScore
 end
+
+local pointPUpColors = {{0, 0.1, 1}, {0, 1, 0,1}, {0.9, 0, 0}}
+
+local function createPointPUp()
+
+	local val = math.random(3)
+	local points = (math.pow(val, 2)+1) * pointPUpMultiplyer
+
+	newPUp = display.newRect(math.random(cW), -20, 20, 20)
+	newPUp:setFillColor(unpack(pointPUpColors[val]))
+
+	newPUp.points = points
+	newPUp.val = val
+	newPUp.doneTouch = false
+
+	table.insert(pUpTable, newPUp)
+end
+
+local function createPUp()
+	local pUpType = math.random(10)
+
+	if (pUpType == 1) then
+		createPointPUp()
+	end
+
+end
+
+
+
 
 local function createObj()
 
@@ -126,7 +179,7 @@ local function createObj()
 	local newObj
 
 	if (objType == 1 ) then
-		
+
 		newObj = display.newRect( display.contentWidth*0.25, -display.contentHeight/30, display.contentWidth/2, display.contentHeight/15)
 
 	elseif (objType == 2 or objType == 3) then
@@ -140,7 +193,7 @@ local function createObj()
 	end
 
 	if (objSide == 1 ) then
-		
+
 		newObj.x = newObj.x + display.contentCenterX
 
 	else
@@ -152,30 +205,29 @@ local function createObj()
 	newObj.side = objSide
 
 	table.insert(objTable, newObj)
-	
+
 end
 
 local function updateObjs()
 
 	for i = #objTable, 1, -1 do
 
-
-
 		local thisObj = objTable[i]
 
 		if (thisObj.y > display.contentHeight+100) then
 
-			table.remove(objTable, i)
 			display.remove( thisObj )
+			table.remove(objTable, i)
+
 
 		elseif (thisObj.side == 1) then
 
 			transition.to(thisObj, {y = thisObj.y + (objSpeed*rObjSpeed), time=100})
-			
+
 		else
 
 			transition.to(thisObj, {y = thisObj.y + (objSpeed*lObjSpeed), time=100})
-			
+
 		end
 
 		local x = skinWidget.x; local y = skinWidget.y
@@ -189,18 +241,58 @@ local function updateObjs()
 		local upY = thisObj.y + (thisObj.height/2)
 
 
-		if (x >= lowX and x <= upX and y >= lowY and y <= upY) then
+		if (x >= lowX and x <= upX and y >= lowY and y <= upY and not immortal) then
 			gameState = 2
 			skinWidget:setFillColor(1, 0.2, 0)
 		end
 
-		
+	end
 
+end
+
+local function updatePUps()
+
+	for i = #pUpTable, 1, -1 do
+
+		local thisPUp = pUpTable[i]
+		local thisPUpSpeed = thisPUp.speed or objSpeed
+
+		if (thisPUp.y > display.contentHeight+100) then
+
+			display.remove( thisPUp )
+			table.remove(pUpTable, i)
+
+		else
+
+			transition.to(thisPUp, {y = thisPUp.y + (thisPUpSpeed), rotation = thisPUp.rotation+90, time=100})
+
+		end
+
+
+
+		local x1 = skinWidget.x; local y1 = skinWidget.y
+		local x2 = thisPUp.x ; local y2 = thisPUp.y
+
+		local dist = math.pow(math.pow(x1-x2, 2) + math.pow(y1-y2, 2), 0.5)
+
+		if (dist < 100 and not thisPUp.doneTouch) then
+			thisPUp.doneTouch = true
+
+			gameScore = gameScore + thisPUp.points
+			doPointIndication(thisPUp.points, pointPUpColors[thisPUp.val])
+
+			transition.to( thisPUp, {xScale=4, yScale=4, alpha=0, time=250} )
+			timer.performWithDelay( 301, function()
+				table.remove( pUpTable, i )
+				display.remove( thisPUp )
+			end)
+		end
 
 	end
-	
+
 end
-	
+
+
 
 local function upSpeed()
 	if (doUpSpeed) then
@@ -215,6 +307,7 @@ local function gameLoop()
 
 	if (gameState == 1) then
 		createObj()
+		if doPUps then createPUp() end
 	end
 
 	if (gameScore > 30 and gameScore < 1000) then
@@ -228,6 +321,7 @@ end
 local function updateLoop()
 	if (gameState == 1) then
 		updateObjs()
+		updatePUps()
 		incScore()
 	elseif (gameState == 2) then
 		makeEnd()
@@ -242,11 +336,13 @@ end
 local filePath = system.pathForFile("scoreData.json", system.DocumentsDirectory)
 
 local function saveScores()
-	
+
 	composer.setVariable("finalScore", gameScore)
 	composer.setVariable("isFromGame", true)
-	
+
 end
+
+
 
 
 
@@ -261,13 +357,13 @@ function scene:create( event )
 	-- Code here runs when the scene is first created but has not yet appeared on screen
 
 	background = display.newRect(sceneGroup, cW/4, ccY, ccX, cH)
-	
+
 
 	skinWidget = display.newImageRect(sceneGroup, skinTable[skinId], 100, 100)
 	skinWidget.x=ccX; skinWidget.y=cH-200
 	skinWidget:setFillColor(unpack(skinColor))
 
-	gameScoreText = display.newText(sceneGroup, gameScore, ccX-85, 100, native.systemFont, 72)
+	gameScoreText = display.newText(sceneGroup, gameScore, cW/4, 100, native.systemFont, 72)
 	gameScoreText:setFillColor(0, 0, 0)
 
 
@@ -315,7 +411,7 @@ function scene:hide( event )
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
 
-		
+
 
 	end
 end

@@ -8,7 +8,7 @@ local scene = composer.newScene()
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
-local ccX = display.contentCenterX
+local ccX = display.contentCenterX -- Preinitialise utility/object related vaiables
 local ccY = display.contentCenterY
 local cH = display.contentHeight
 local cW = display.contentWidth
@@ -32,6 +32,8 @@ local skinButtons = {}
 local skinData = {}
 
 local filePath = system.pathForFile("skinData.json", system.DocumentsDirectory)
+
+-- Following functions load and save user selected skin & color to file; 'non-volitle' storage
 
 local function loadData()
 
@@ -65,13 +67,13 @@ local function updateSkin( id)
 
 	skinWidget:removeSelf()
 	skinWidget = newSkinWidget
-	
+
 
 	-- Store selected skin
 	skinData["skin"] = skinId
 end
 
-local function US0() updateSkin(0) end
+local function US0() updateSkin(0) end -- Event handlers for updating skin icons
 local function US1() updateSkin(1) end
 local function US2() updateSkin(2) end
 local function US3() updateSkin(3) end
@@ -87,14 +89,16 @@ local function updateColor(id)
 
 end
 
-local function UC0() updateColor(0) end
+local function UC0() updateColor(0) end -- Event handlers for updating skin color
 local function UC1() updateColor(1) end
 local function UC2() updateColor(2) end
 local function UC3() updateColor(3) end
 
-local function moveSkinWidget()
 
-	skinWidget.x = skinWidget.x + skinF 
+
+local function moveSkinWidget() -- Player 'icon' animation function
+
+	skinWidget.x = skinWidget.x + skinF
 	skinWidget.rotation = skinWidget.rotation + 2
 
 	if (skinWidget.x > cW-75 or skinWidget.x < 225) then
@@ -102,14 +106,14 @@ local function moveSkinWidget()
 	end
 end
 
-local function onBackButtonPress()
+local function onBackButtonPress() --Back button event handler
 
 		timer.cancel(skinTimer)
 
 		composer.gotoScene("menu", {effect="slideRight", time = 500})
 		timer.performWithDelay(550, function()
 			composer.removeScene("skins")
-		end)	
+		end)
 end
 
 
@@ -127,7 +131,9 @@ function scene:create( event )
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
 
-	loadData()
+	loadData() -- Load skin/color data
+
+-- Create display objects
 
 	background = display.newRect(sceneGroup, 0.75*cW, ccY, ccX, cH)
 
@@ -139,6 +145,7 @@ function scene:create( event )
 	skinWidget.x=ccX; skinWidget.y=ccY
 	skinWidget:setFillColor(unpack(skinColor))
 
+	-- Create skin/color changing buttons
 
 	for i=0, 3 do
 		local x, y
@@ -178,12 +185,9 @@ function scene:create( event )
 	end
 
 
-
-	--timer.performWithDelay(2000, function() skinWidget = updateSkin(1) end)
 end
 
 
--- show()
 function scene:show( event )
 
 	local sceneGroup = self.view
@@ -192,7 +196,7 @@ function scene:show( event )
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is still off screen (but is about to come on screen)
 
-		backButton:addEventListener("tap", onBackButtonPress)
+		backButton:addEventListener("tap", onBackButtonPress) -- Binf event listers to handlers
 		colorButtons[0]:addEventListener("tap", UC0)
 		colorButtons[1]:addEventListener("tap", UC1)
 		colorButtons[2]:addEventListener("tap", UC2)
@@ -219,7 +223,7 @@ function scene:hide( event )
 
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
-		saveData()
+		saveData() -- Save updated data
 
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
@@ -227,14 +231,6 @@ function scene:hide( event )
 	end
 end
 
-
--- destroy()
-function scene:destroy( event )
-
-	local sceneGroup = self.view
-	-- Code here runs prior to the removal of scene's view
-
-end
 
 
 -- -----------------------------------------------------------------------------------
