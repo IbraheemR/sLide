@@ -8,7 +8,7 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
-local ccX = display.contentCenterX
+local ccX = display.contentCenterX -- Preinitliaise utility and object related variables
 local ccY = display.contentCenterY
 local cH = display.contentHeight
 local cW = display.contentWidth
@@ -18,7 +18,7 @@ local background
 local immortal = false
 local doPUps = true
 
-local gameState = 0 -- 0 to 0.9 is waiting, 1 ingame, 2 ended & cleanup, 3 finished
+local gameState = 0 -- Game state: 0 to 0.9 is waiting, 1 ingame, 2 ended & cleanup, 3 finished
 local gameScore = 0
 local gameScoreText
 
@@ -44,7 +44,7 @@ local inScoreVal = 1
 
 local doUpSpeed =true
 
-local function makeEnd()
+local function makeEnd() --Stops game loops and safely deletes game objects
 
 	timer.cancel(gameLoopTimer)
 	timer.cancel(updateTimer)
@@ -65,7 +65,7 @@ local function makeEnd()
 
 end
 
-local function moveSkinWidget()
+local function moveSkinWidget() -- Rotates player 'icon' when in mation
 	if (gameState == 1) then
 		skinWidget.rotation = skinWidget.rotation + 5
 	end
@@ -73,7 +73,8 @@ end
 
 local touchOffsetX
 local touchOffsetY
-local function onSkinWidgetTouch( event )
+
+local function onSkinWidgetTouch( event ) -- calculates movement offset  when player 'icon' is being dragged
 
 	local p = event.target
 	local phase = event.phase
@@ -124,23 +125,25 @@ local function onSkinWidgetTouch( event )
 	return true
 end
 
-local function doPointIndication(text, color)
+local function doPointIndication(text, color) -- displays points gained from power up
 
-	local text = display.newText(scene.view, "+"..tostring(text), 3*cW/4, 100, native.systemFont, 56)
+	local text = display.newText(scene.view, "+"..tostring(text), 3*cW/4, 100, native.systemFont, 56) -- creates text
 	text:setFillColor(unpack(color))
 
-	local lenTime = 1000
+	local lenTime = 1000 -- duration text stays on screen
 
-	transition.to( text, {time=lenTime, alpha=0, y=-50 })
-	timer.performWithDelay( lenTime, function() display.remove( text )end )
+	transition.to( text, {time=lenTime, alpha=0, y=-50 }) -- Animation: moves text up and fades it
+	timer.performWithDelay( lenTime, function() display.remove( text )end ) --Safely removes text after it has faded
 
 end
 
-local function incScore()
+local function incScore() --Increaes score every tic and updates display text
 
 	gameScore = gameScore + inScoreVal
 	gameScoreText.text = gameScore
 end
+
+--followinf functions create powerups
 
 local pointPUpColors = {{0, 0.1, 1}, {0, 1, 0,1}, {0.9, 0, 0}}
 
@@ -169,9 +172,7 @@ local function createPUp()
 end
 
 
-
-
-local function createObj()
+local function createObj() -- Creates obstacle
 
 	local objType = math.random(5)
 	local objSide = math.random(2)
@@ -207,6 +208,9 @@ local function createObj()
 	table.insert(objTable, newObj)
 
 end
+
+
+--Following functions update powerpus and obstacles
 
 local function updateObjs()
 
@@ -294,7 +298,7 @@ end
 
 
 
-local function upSpeed()
+local function upSpeed() -- Increases speed as player levels up
 	if (doUpSpeed) then
 		objSpeed = objSpeed + 2
 		inScoreVal = inScoreVal + 1
@@ -303,7 +307,9 @@ local function upSpeed()
 end
 
 local i = 0
-local function gameLoop()
+
+
+local function gameLoop() -- Main game loop
 
 	if (gameState == 1) then
 		createObj()
@@ -318,7 +324,7 @@ local function gameLoop()
 
 end
 
-local function updateLoop()
+local function updateLoop() -- Updates obstacles and powerups. Initialies end of game when state = 2
 	if (gameState == 1) then
 		updateObjs()
 		updatePUps()
@@ -333,9 +339,7 @@ local function updateLoop()
 end
 
 
-local filePath = system.pathForFile("scoreData.json", system.DocumentsDirectory)
-
-local function saveScores()
+local function saveScores() -- Sets final game score to be added to saved highscores if it is high enough (in highscores scene)
 
 	composer.setVariable("finalScore", gameScore)
 	composer.setVariable("isFromGame", true)
@@ -396,7 +400,6 @@ function scene:show( event )
 	end
 end
 
-
 -- hide()
 function scene:hide( event )
 
@@ -406,12 +409,10 @@ function scene:hide( event )
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
 
-		saveScores()
+
 
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
-
-
 
 	end
 end
@@ -424,8 +425,6 @@ function scene:destroy( event )
 	-- Code here runs prior to the removal of scene's view
 
 end
-
-
 -- -----------------------------------------------------------------------------------
 -- Scene event function listeners
 -- -----------------------------------------------------------------------------------

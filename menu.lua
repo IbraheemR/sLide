@@ -23,11 +23,12 @@ local skinId = composer.getVariable("skin")
 local skinTable = composer.getVariable("skinTable")
 local skinColor = composer.getVariable("skinColor")
 local skinTimer
-local skinF = 10
+local skinSpeed = 10
 
 local playButton
-local modeButton
+local highscoresButton
 local skinButton
+
 
 
 --Event handlers for button interactions
@@ -42,7 +43,7 @@ local function onPlayButtonPress()
 		end)
 end
 
-local function onModeButtonPress()
+local function onHighscoresButtonPress()
 
 	timer.cancel(skinTimer)
 
@@ -67,11 +68,11 @@ end
 
 local function moveSkinWidget() -- Function animates moving player 'icon'
 
-	skinWidget.x = skinWidget.x + skinF
+	skinWidget.x = skinWidget.x + skinSpeed
 	skinWidget.rotation = skinWidget.rotation + 2
 
 	if (skinWidget.x > cW-75 or skinWidget.x < 75) then
-			skinF = -skinF
+			skinSpeed = -skinSpeed -- make skinWidget move in opposite direction if it comes to an end
 	end
 end
 
@@ -103,9 +104,9 @@ function scene:create( event )
 	skinButton = display.newImageRect(sceneGroup, "skins.png", 100, 100)
 	skinButton.x = 3*cW/4; skinButton.y = 3*cH/4
 
-	modeButton = display.newImageRect(sceneGroup, "mode.png", 100, 100)
-	modeButton.x = cW/4; modeButton.y = 3*cH/4
-	modeButton.rotation = 180
+	highscoresButton = display.newImageRect(sceneGroup, "mode.png", 100, 100)
+	highscoresButton.x = cW/4; highscoresButton.y = 3*cH/4
+	highscoresButton.rotation = 180
 
 
 	skinWidget = display.newImageRect(sceneGroup, skinTable[skinId], 100, 100) -- Animated icons ; skinTable[skinId] gets user selected skin
@@ -127,7 +128,7 @@ function scene:show( event )
 	if ( phase == "will" ) then
 
 		playButton:addEventListener("tap", onPlayButtonPress) -- Bind button interaction event listeners
-		modeButton:addEventListener("tap", onModeButtonPress)
+		highscoresButton:addEventListener("tap", onHighscoresButtonPress)
 		skinButton:addEventListener("tap", onSkinButtonPress)
 
 		skinTimer = timer.performWithDelay(10, moveSkinWidget, 0) -- Start player 'icon' annimation

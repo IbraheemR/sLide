@@ -8,28 +8,9 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
-local scoreTableLength = 8
+local scoreTableLength = 8 -- How many scores to display
 
-
-function deepCopy(object)
-    local lookup_table = {}
-    local function _copy(object)
-        if type(object) ~= "table" then
-            return object
-        elseif lookup_table[object] then
-            return lookup_table[object]
-        end
-        local new_table = {}
-        lookup_table[object] = new_table
-        for index, value in pairs(object) do
-            new_table[_copy(index)] = _copy(value)
-        end
-        return setmetatable(new_table, getmetatable(object))
-    end
-    return _copy(object)
-end
-
-local ccX = display.contentCenterX
+local ccX = display.contentCenterX -- Preinitalise utility/object reated variables
 local ccY = display.contentCenterY
 local cH = display.contentHeight
 local cW = display.contentWidth
@@ -49,10 +30,9 @@ local skinF = 10
 local backButton
 
 
+local function moveSkinWidget() --Player 'icon' annimation function
 
-local function moveSkinWidget()
-
-	skinWidget.y = skinWidget.y + skinF 
+	skinWidget.y = skinWidget.y + skinF
 	skinWidget.rotation = skinWidget.rotation + 2
 
 	if (skinWidget.y > cH-275 or skinWidget.y < 250) then
@@ -61,19 +41,11 @@ local function moveSkinWidget()
 end
 
 
+--Following code manipulates stored highscore data
 
-
-local finalScore = composer.getVariable("finalScore") or 0
+local finalScore = composer.getVariable("finalScore") or 0 --Load final score from just completed game (defaults to zero if none found; the "or 0" part)
 local scoreData
 local filePath = system.pathForFile("scoreData.json", system.DocumentsDirectory)
-
-local function saveScores()
-	local file = io.open(filePath, "w")
-
-	file:write(json.encode(scoreData))
-
-	io.close(file)
-end
 
 
 local function loadScores()
@@ -88,43 +60,44 @@ local function loadScores()
 
 	if (scoreData == nil or #scoreData == 0) then
 		scoreData = {tonumber(finalScore) or 0, 0, 0, 0, 0}
-	elseif (composer.getVariable("isFromGame")) then
+	elseif (composer.getVariable("isFromGame")) then -- Insert final gamescore into highscores if previous scene was the game; dont repeat this if the highscores button on main menu si pressed
 		table.insert(scoreData, finalScore)
 		table.sort(scoreData, function(a, b) return a > b end)
 		scoreData[scoreTableLength+1] = nil
 	end
 
-		saveScores()
+  local file = io.open(filePath, "w") -- save updated scores
+  file:write(json.encode(scoreData))
+  io.close(file)
 
 end
 
 local scoreTextTable = {}
 local function showScores(parent)
 
-	local isCurrentDone = false
+  local isCurrentDone = false --Keeps track of whether or not the user's most recent score is highlighted; stops any duplicate scores also being highlighted
 
 	for i=1, #scoreData do
 
-		scoreTextTable[i] = display.newText(parent, tostring(scoreData[i] or 0), 3*cW/4, 150+i*100, native.systemFont, 72)
+		scoreTextTable[i] = display.newText(parent, tostring(scoreData[i] or 0), 3*cW/4, 150+i*100, native.systemFont, 72) --create new text widget in appropriate place
 
 		if (not isCurrentDone and scoreData[i] == finalScore and finalScore ~= 0) then
 			isCurrentDone = true
-			scoreTextTable[i]:setFillColor(unpack(skinColor))
-
+			scoreTextTable[i]:setFillColor(unpack(skinColor)) -- highlight user's most recent score
 		end
 
 	end
-	
+
 end
 
-local function onBackButtonPress()
+local function onBackButtonPress() --Event handler for back button interaction
 
 		timer.cancel(skinTimer)
 
 		composer.gotoScene("menu", {effect="slideUp", time = 500})
 		timer.performWithDelay(550, function()
 			composer.removeScene("highscores")
-		end)	
+		end)
 end
 
 -- -----------------------------------------------------------------------------------
@@ -136,6 +109,8 @@ function scene:create( event )
 
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
+
+  --Creates consistent display objects; i.e. those that are always the same
 
 	background = display.newRect(sceneGroup, cW/4, ccY, ccX, cH)
 
@@ -151,9 +126,8 @@ function scene:create( event )
 	backButton.x = ccX; backButton.y = cH-100
 	backButton:setFillColor(unpack(skinColor))
 
-	loadScores()
-
-	showScores(sceneGroup)
+	loadScores() -- Load score data from file
+	showScores(sceneGroup) -- Display this data
 
 end
 
@@ -167,7 +141,7 @@ function scene:show( event )
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is still off screen (but is about to come on screen)
 
-		skinTimer = timer.performWithDelay(10, moveSkinWidget, 0)
+		skinTimer = timer.performWithDelay(10, moveSkinWidget, 0) --Bind event listeners to handlers
 		backButton:addEventListener("tap", onBackButtonPress)
 
 	elseif ( phase == "did" ) then

@@ -223,7 +223,8 @@ function scene:hide( event )
 
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
-		saveData() -- Save updated data
+
+
 
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
@@ -231,6 +232,14 @@ function scene:hide( event )
 	end
 end
 
+
+-- destroy()
+function scene:destroy( event )
+
+	local sceneGroup = self.view
+	-- Code here runs prior to the removal of scene's view
+
+end
 
 
 -- -----------------------------------------------------------------------------------
