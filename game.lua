@@ -341,6 +341,7 @@ end
 
 local function saveScores() -- Sets final game score to be added to saved highscores if it is high enough (in highscores scene)
 
+	print(gameScore)
 	composer.setVariable("finalScore", gameScore)
 	composer.setVariable("isFromGame", true)
 
@@ -408,6 +409,8 @@ function scene:hide( event )
 
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is on screen (but is about to go off screen)
+
+			saveScores()
 
 
 

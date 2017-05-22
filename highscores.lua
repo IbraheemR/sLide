@@ -56,10 +56,17 @@ local function loadScores()
 		local contents = file:read("*a")
 		io.close(file)
 		scoreData = json.decode(contents)
+
+	else
+
+		io.close( file )
+		file = io.open(filePath, "w")
+		file:write(json.encode( {0, 0, 0, 0} ))
+		io.close( file )
 	end
 
 	if (scoreData == nil or #scoreData == 0) then
-		scoreData = {tonumber(finalScore) or 0, 0, 0, 0, 0}
+		scoreData = {tonumber(finalScore)}
 	elseif (composer.getVariable("isFromGame")) then -- Insert final gamescore into highscores if previous scene was the game; dont repeat this if the highscores button on main menu si pressed
 		table.insert(scoreData, finalScore)
 		table.sort(scoreData, function(a, b) return a > b end)
