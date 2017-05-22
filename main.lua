@@ -3,6 +3,7 @@ local json = require("json")
 
 math.randomseed(os.time()) -- Create new random generator seed
 
+display.setStatusBar( display.HiddenStatusBar )
 
 local skinData = {}
 

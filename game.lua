@@ -15,7 +15,7 @@ local cW = display.contentWidth
 
 local background
 
-local immortal = true
+local immortal = false
 local doPUps = true
 
 local gameState = 0 -- Game state: 0 to 0.9 is waiting, 1 ingame, 2 ended & cleanup, 3 finished
@@ -43,11 +43,10 @@ local objsActiveTimer
 local barIndicatorActive = false
 
 local pUpTable = {}
+local pUpChance = 20
 local pointPUpMultiplyer = 100
 
 local inScoreVal = 1
-
-local doUpSpeed =true
 
 local function makeEnd() --Stops game loops and safely deletes game objects
 
@@ -84,15 +83,15 @@ local function onSkinWidgetTouch( event ) -- calculates movement offset  when pl
 	local p = event.target
 	local phase = event.phase
 
+	if (gameState < 1 ) then
+		gameState = 1
+	end
+
 	if (phase == "began" and gameState < 2) then
 
 		display.currentStage:setFocus(p) --focus on ship
 		touchOffsetX = event.x - p.x -- store initial offset
 		touchOffsetY = event.y - p.y
-
-		if (gameState < 1 ) then
-			gameState = 1
-		end
 
 	elseif (phase == "moved" and gameState < 2) then
 
@@ -133,7 +132,7 @@ end
 local function doIndication(text, color) -- display text for powerup etc
 
 	local text = display.newText(scene.view, tostring(text), 3*cW/4, 100, native.systemFont, 56) -- creates text
-	text:setFillColor(unpack(color))
+	text:setFillColor(unpack(color or {}))
 
 	local lenTime = 1000 -- duration text stays on screen
 
@@ -158,7 +157,7 @@ end
 
 local function doPointIndication(points, color) -- displays points gained from power up
 
-	doIndication("+" .. tostring(text), color)
+	doIndication("+" .. tostring(points), color)
 
 end
 
@@ -198,7 +197,7 @@ end
 
 local function newPhasePUp() -- allows the player to 'phase through' objects for 10 seconds
 
-	newPUp = display.newRect(math.random(cW), -20, 20, 20) -- display object
+	local newPUp = display.newRect(math.random(cW), -20, 20, 20) -- display object
 	newPUp:setFillColor(0.5, 0.5, 0.5, 0.5) -- set color
 
 	newPUp.doneTouch = false --set to treu once touched, stops the powerup being activated multiple times
@@ -214,6 +213,21 @@ local function newPhasePUp() -- allows the player to 'phase through' objects for
 			timer.performWithDelay(10000, function() objsAcitve = true end) -- deactivate the powerup after 10 seconds (10000 microseconds)
 		end
 	end
+end
+
+	local function newSpeedPUp() -- allows the player to 'phase through' objects for 10 seconds
+
+		local newPUp = display.newRect(math.random(cW), -20, 20, 20) -- display object
+		newPUp:setFillColor(1, 0, 1) -- set color
+
+		newPUp.doneTouch = false --set to true once touched, stops the powerup being activated multiple times
+
+		function newPUp:powerFunction() --called if powerup is activated/touched
+
+				objSpeed = math.ceil(objSpeed * 1.3) -- Speed up the game
+				gameScore = gameScore + 1000 -- reward the player for speeding up
+				doIndication("Speeding Up\n     +1000", {1, 0, 1}) -- tells the player about this
+		end
 
 	function newPUp:updateFunction() -- called every tick, moves the object down and rotates it
 		transition.to(self, {y = self.y + (self.speed or objSpeed), rotation = self.rotation-90, time=100})
@@ -223,17 +237,20 @@ local function newPhasePUp() -- allows the player to 'phase through' objects for
 end
 
 local function createPUp() -- creates a powerup
-	local pUpType = math.random(20) -- determine type
+	local pUpType = math.random(pUpChance) -- determine type
 
 	if (pUpType == 1) then
-		newPUp = newPhasePUp()
-	end
-
-	if (pUpType == 2 and objsAcitve) then -- Check if another phase upgrade is active (objsAcitve == false), if not create a new power up
+		newPUp = newPointPUp()
+	elseif (pUpType == 2) then
 		 newPUp = newPhasePUp()
+	elseif (pUpType == 3) then
+		 newPUp = newSpeedPUp()
 	end
 
-	table.insert(pUpTable, newPUp)
+	if newPUp then
+		newPUp.type = pUpType
+		table.insert(pUpTable, newPUp)
+	end
 
 end
 
@@ -331,7 +348,7 @@ local function updatePUps()
 
 		local thisPUp = pUpTable[i]
 
-		if ((not thisPUp.val ) and barIndicatorActive) then -- delete phase power ups if another is already active
+		if (thisPUp.type == 2 and barIndicatorActive) then -- delete phase power ups (type 2) if another is already active
 			thisPUp.needRemove = true
 		end
 
@@ -364,16 +381,6 @@ local function updatePUps()
 
 end
 
-
-
-local function upSpeed() -- Increases speed as player levels up
-	if (doUpSpeed) then
-		objSpeed = objSpeed + 2
-		inScoreVal = inScoreVal + 1
-
-	end
-end
-
 local i = 0
 
 
@@ -383,11 +390,6 @@ local function gameLoop() -- Main game loop
 		createObj()
 		if doPUps then createPUp() end
 	end
-
-	if (gameScore > 30 and gameScore < 1000) then
-		upSpeed()
-	end
-
 
 
 end
@@ -454,9 +456,6 @@ function scene:show( event )
 	if ( phase == "will" ) then
 		-- Code here runs when the scene is still off screen (but is about to come on screen)
 
-	elseif ( phase == "did" ) then
-		-- Code here runs when the scene is entirely on screen
-
 		--game loop timers
 
 		skinTimer = timer.performWithDelay(10, moveSkinWidget, 0)
@@ -468,6 +467,10 @@ function scene:show( event )
 
 		gameLoopTimer = timer.performWithDelay(750, gameLoop, 0)
 		updateTimer = timer.performWithDelay(30, updateLoop, 0)
+
+	elseif ( phase == "did" ) then
+		-- Code here runs when the scene is entirely on screen
+		doPointIndication(1000)
 
 	end
 end

@@ -93,7 +93,7 @@ function scene:create( event )
 	title1:setFillColor(0, 0, 0)
 	title2 = display.newText(sceneGroup, "de", ccX+85, 200, native.systemFont, 144)
 
-	title3 = display.newText(sceneGroup, "by Ibraheem Rodrigues", 25, cH-200, native.systemFont, 36)
+	title3 = display.newText(sceneGroup, "by Ibraheem Rodrigues", 25, cH-300, native.systemFont, 36)
 	title3:setFillColor(0, 0, 0)
 	title3.rotation = 270
 
