@@ -3,6 +3,7 @@ local json = require("json")
 
 math.randomseed(os.time()) -- Create new random generator seed
 
+
 local skinData = {}
 
 local function loadData() -- Load skin data

@@ -15,7 +15,7 @@ local cW = display.contentWidth
 
 local background
 
-local immortal = false
+local immortal = true
 local doPUps = true
 
 local gameState = 0 -- Game state: 0 to 0.9 is waiting, 1 ingame, 2 ended & cleanup, 3 finished
@@ -37,6 +37,11 @@ local lObjSpeed = 0
 local rObjSpeed = 0
 local objTable = {}
 
+local objsAcitve = true
+local objsActiveTimer
+
+local barIndicatorActive = false
+
 local pUpTable = {}
 local pointPUpMultiplyer = 100
 
@@ -54,13 +59,13 @@ local function makeEnd() --Stops game loops and safely deletes game objects
 		display.remove( objTable[i] )
 	end
 
-	objTable = {}
+	objTable = nil
 
 	for i=#pUpTable, 1, -1 do
 		display.remove( pUpTable[i] )
 	end
 
-	pUpTable = {}
+	pUpTable = nil
 
 
 end
@@ -125,15 +130,35 @@ local function onSkinWidgetTouch( event ) -- calculates movement offset  when pl
 	return true
 end
 
-local function doPointIndication(text, color) -- displays points gained from power up
+local function doIndication(text, color) -- display text for powerup etc
 
-	local text = display.newText(scene.view, "+"..tostring(text), 3*cW/4, 100, native.systemFont, 56) -- creates text
+	local text = display.newText(scene.view, tostring(text), 3*cW/4, 100, native.systemFont, 56) -- creates text
 	text:setFillColor(unpack(color))
 
 	local lenTime = 1000 -- duration text stays on screen
 
 	transition.to( text, {time=lenTime, alpha=0, y=-50 }) -- Animation: moves text up and fades it
 	timer.performWithDelay( lenTime, function() display.remove( text )end ) --Safely removes text after it has faded
+
+end
+
+local function doBarIndication(fadeTime, color)
+	bar = display.newRect(scene.view, 0, cH, cW, 50 )
+	bar:setFillColor(unpack( color ))
+	barIndicatorActive = true
+
+	id = transition.to( bar, {width = 0, time = fadeTime} )
+	timer.performWithDelay(fadeTime, function()
+		barIndicatorActive = false
+		display.remove(bar)
+	end)
+
+	--return id
+end
+
+local function doPointIndication(points, color) -- displays points gained from power up
+
+	doIndication("+" .. tostring(text), color)
 
 end
 
@@ -147,7 +172,7 @@ end
 
 local pointPUpColors = {{0, 0.1, 1}, {0, 1, 0,1}, {0.9, 0, 0}}
 
-local function createPointPUp()
+local function newPointPUp() --this powerup gives the player an amount of points (blue 200, green 500, red 1000)
 
 	local val = math.random(3)
 	local points = (math.pow(val, 2)+1) * pointPUpMultiplyer
@@ -159,23 +184,64 @@ local function createPointPUp()
 	newPUp.val = val
 	newPUp.doneTouch = false
 
-	table.insert(pUpTable, newPUp)
-end
-
-local function createPUp()
-	local pUpType = math.random(10)
-
-	if (pUpType == 1) then
-		createPointPUp()
+	function newPUp:powerFunction() --called if powerup is activated/touched
+		gameScore = gameScore + self.points -- Increase point amount
+		doPointIndication(self.points, pointPUpColors[self.val]) --tell the player howmany points they got
 	end
 
+	function newPUp:updateFunction() -- called every tick, moves the object down and rotates it
+		transition.to(self,  {y = self.y + (self.speed or objSpeed), rotation = self.rotation+90, time=100})
+	end
+
+	return newPUp
+end
+
+local function newPhasePUp() -- allows the player to 'phase through' objects for 10 seconds
+
+	newPUp = display.newRect(math.random(cW), -20, 20, 20) -- display object
+	newPUp:setFillColor(0.5, 0.5, 0.5, 0.5) -- set color
+
+	newPUp.doneTouch = false --set to treu once touched, stops the powerup being activated multiple times
+
+	function newPUp:powerFunction() --called if powerup is activated/touched
+
+		if (not barIndicatorActive) then -- ensures there is no other 'long term' powerup active
+			objsAcitve = false -- Allow the player to pass through objects
+			doIndication("Invincible", {0.5, 0.5, 0.5}) -- tells the player about this
+			doBarIndication(10000, {0.5, 0.5, 0.5}) -- Set a bar at the bottom, which shrinks as the powerup runs out
+
+			if(objsActiveTimer) then timer.cancel(objsActiveTimer) end --cancel any other running delays with the "phase" tag
+			timer.performWithDelay(10000, function() objsAcitve = true end) -- deactivate the powerup after 10 seconds (10000 microseconds)
+		end
+	end
+
+	function newPUp:updateFunction() -- called every tick, moves the object down and rotates it
+		transition.to(self, {y = self.y + (self.speed or objSpeed), rotation = self.rotation-90, time=100})
+	end
+
+	return newPUp
+end
+
+local function createPUp() -- creates a powerup
+	local pUpType = math.random(20) -- determine type
+
+	if (pUpType == 1) then
+		newPUp = newPhasePUp()
+	end
+
+	if (pUpType == 2 and objsAcitve) then -- Check if another phase upgrade is active (objsAcitve == false), if not create a new power up
+		 newPUp = newPhasePUp()
+	end
+
+	table.insert(pUpTable, newPUp)
+
 end
 
 
-local function createObj() -- Creates obstacle
+local function createObj() -- Creates  an obstacle
 
-	local objType = math.random(5)
-	local objSide = math.random(2)
+	local objType = math.random(5) --determine obstace type (1 across the whole side, 2 or 3 on the left, 4 or 5 on the right)
+	local objSide = math.random(2) -- determine if the obsatce is on the left or right side
 
 	local newObj
 
@@ -234,9 +300,14 @@ local function updateObjs()
 
 		end
 
+		if (not objsAcitve) then
+			thisObj.alpha = 0.7
+
+		end
+
+
+
 		local x = skinWidget.x; local y = skinWidget.y
-
-
 
 		local lowX = thisObj.x - (thisObj.width/2)
 		local upX = thisObj.x + (thisObj.width/2)
@@ -245,7 +316,7 @@ local function updateObjs()
 		local upY = thisObj.y + (thisObj.height/2)
 
 
-		if (x >= lowX and x <= upX and y >= lowY and y <= upY and not immortal) then
+		if (x >= lowX and x <= upX and y >= lowY and y <= upY and objsAcitve and not immortal) then -- detect if player has hit an obstacle
 			gameState = 2
 			skinWidget:setFillColor(1, 0.2, 0)
 		end
@@ -259,37 +330,34 @@ local function updatePUps()
 	for i = #pUpTable, 1, -1 do
 
 		local thisPUp = pUpTable[i]
-		local thisPUpSpeed = thisPUp.speed or objSpeed
 
-		if (thisPUp.y > display.contentHeight+100) then
-
-			display.remove( thisPUp )
-			table.remove(pUpTable, i)
-
-		else
-
-			transition.to(thisPUp, {y = thisPUp.y + (thisPUpSpeed), rotation = thisPUp.rotation+90, time=100})
-
+		if ((not thisPUp.val ) and barIndicatorActive) then -- delete phase power ups if another is already active
+			thisPUp.needRemove = true
 		end
 
-
-
 		local x1 = skinWidget.x; local y1 = skinWidget.y
-		local x2 = thisPUp.x ; local y2 = thisPUp.y
+		local x2 = thisPUp.x or 0 ; local y2 = thisPUp.y or 0
 
 		local dist = math.pow(math.pow(x1-x2, 2) + math.pow(y1-y2, 2), 0.5)
 
-		if (dist < 100 and not thisPUp.doneTouch) then
+		if (dist < 100 and not thisPUp.doneTouch) then -- if player touches a power up, run irs power function, fade it and delete it
 			thisPUp.doneTouch = true
 
-			gameScore = gameScore + thisPUp.points
-			doPointIndication(thisPUp.points, pointPUpColors[thisPUp.val])
+			thisPUp:powerFunction()
 
 			transition.to( thisPUp, {xScale=4, yScale=4, alpha=0, time=250} )
-			timer.performWithDelay( 301, function()
-				table.remove( pUpTable, i )
-				display.remove( thisPUp )
-			end)
+			timer.performWithDelay( 250,  function() thisPUp.needRemove = true end ) -- schedule it to be deleted, instead of deleting it now which can cause errors
+
+		end
+
+		if (thisPUp.needRemove or  thisPUp.y > (display.contentHeight+100)) then
+
+			display.remove( thisPUp )--remove powerup from display scene
+			table.remove(pUpTable, i)--remove powerup from memory
+
+		else
+			thisPUp:updateFunction()
+
 		end
 
 	end
@@ -341,7 +409,6 @@ end
 
 local function saveScores() -- Sets final game score to be added to saved highscores if it is high enough (in highscores scene)
 
-	print(gameScore)
 	composer.setVariable("finalScore", gameScore)
 	composer.setVariable("isFromGame", true)
 
@@ -360,6 +427,8 @@ function scene:create( event )
 
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
+
+-- create 'known' display objects (those which always appear and are nor placed randomly, e.g obstacles)
 
 	background = display.newRect(sceneGroup, cW/4, ccY, ccX, cH)
 
@@ -387,6 +456,8 @@ function scene:show( event )
 
 	elseif ( phase == "did" ) then
 		-- Code here runs when the scene is entirely on screen
+
+		--game loop timers
 
 		skinTimer = timer.performWithDelay(10, moveSkinWidget, 0)
 		timer.performWithDelay(1000, function()

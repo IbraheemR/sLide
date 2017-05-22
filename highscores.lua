@@ -59,7 +59,6 @@ local function loadScores()
 
 	else
 
-		io.close( file )
 		file = io.open(filePath, "w")
 		file:write(json.encode( {0, 0, 0, 0} ))
 		io.close( file )
