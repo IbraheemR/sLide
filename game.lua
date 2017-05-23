@@ -15,8 +15,7 @@ local cW = display.contentWidth
 
 local background
 
-local immortal = false
-local doPUps = true
+local immortal = true
 
 local gameState = 0 -- Game state: 0 to 0.9 is waiting, 1 ingame, 2 ended & cleanup, 3 finished
 local gameScore = 0
@@ -42,8 +41,9 @@ local objsActiveTimer
 
 local barIndicatorActive = false
 
+local doPUps = true
 local pUpTable = {}
-local pUpChance = 20
+local pUpChance = 5
 local pointPUpMultiplyer = 100
 
 local inScoreVal = 1
@@ -198,7 +198,7 @@ end
 local function newPhasePUp() -- allows the player to 'phase through' objects for 10 seconds
 
 	local newPUp = display.newRect(math.random(cW), -20, 20, 20) -- display object
-	newPUp:setFillColor(0.5, 0.5, 0.5, 0.5) -- set color
+	newPUp:setFillColor(0.5, 0.5, 0.5) -- set color
 
 	newPUp.doneTouch = false --set to treu once touched, stops the powerup being activated multiple times
 
@@ -224,7 +224,7 @@ end
 
 		function newPUp:powerFunction() --called if powerup is activated/touched
 
-				objSpeed = math.ceil(objSpeed * 1.3) -- Speed up the game
+				objSpeed = math.ceil(objSpeed * 1.31) -- Speed up the game
 				gameScore = gameScore + 1000 -- reward the player for speeding up
 				doIndication("Speeding Up\n     +1000", {1, 0, 1}) -- tells the player about this
 		end
@@ -237,18 +237,20 @@ end
 end
 
 local function createPUp() -- creates a powerup
-	local pUpType = math.random(pUpChance) -- determine type
+	-- local pUpType = math.random(pUpChance) -- determine type
 
-	if (pUpType == 1) then
-		newPUp = newPointPUp()
-	elseif (pUpType == 2) then
-		 newPUp = newPhasePUp()
-	elseif (pUpType == 3) then
-		 newPUp = newSpeedPUp()
-	end
+	-- if (pUpType == 1) then
+	-- 	newPUp = newPhasePUp()
+	-- elseif (pUpType == 2) then
+	-- 	 newPUp = newPhasePUp()
+	-- elseif (pUpType == 3) then
+	-- 	 newPUp = newPhasePUp()
+	-- end
+
+	newPUp = newPhasePUp()
 
 	if newPUp then
-		newPUp.type = pUpType
+		newPUp.type = 2--pUpType
 		table.insert(pUpTable, newPUp)
 	end
 
@@ -348,9 +350,9 @@ local function updatePUps()
 
 		local thisPUp = pUpTable[i]
 
-		if (thisPUp.type == 2 and barIndicatorActive) then -- delete phase power ups (type 2) if another is already active
-			thisPUp.needRemove = true
-		end
+		--if (thisPUp.type == 2 and barIndicatorActive) then -- delete phase power ups (type 2) if another is already active
+			--thisPUp.needRemove = true
+		--end
 
 		local x1 = skinWidget.x; local y1 = skinWidget.y
 		local x2 = thisPUp.x or 0 ; local y2 = thisPUp.y or 0
