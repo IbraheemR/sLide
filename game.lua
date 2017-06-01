@@ -15,7 +15,7 @@ local cW = display.contentWidth
 
 local background
 
-local immortal = true
+local immortal = false
 
 local gameState = 0 -- Game state: 0 to 0.9 is waiting, 1 ingame, 2 ended & cleanup, 3 finished
 local gameScore = 0
